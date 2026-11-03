@@ -162,6 +162,18 @@
         .quelle .pfad { font-size: 13.5px; line-height: 1.35; }
         .quelle .pfad small { display: block; color: var(--sv-text-muted); font-size: 12px; margin-top: 2px; }
 
+        #hoerhinweis {
+            background: var(--sv-surface);
+            border-top: 1px solid var(--sv-border);
+            color: var(--sv-red);
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px 12px 0;
+        }
+        #hoerhinweis[hidden] { display: none; }
+        #hoerhinweis + #eingabe { border-top: none; }
+
         /* Eingabeleiste unten, mit dem Daumen erreichbar */
         #eingabe {
             background: var(--sv-surface);
@@ -239,6 +251,7 @@
 
     <main id="verlauf" aria-live="polite"></main>
 
+    <div id="hoerhinweis" role="status" hidden></div>
     <footer id="eingabe">
         <textarea id="frage" rows="1" placeholder="Frage stellen …" aria-label="Frage" enterkeyhint="send"></textarea>
         <button id="senden" class="rund" type="button" aria-label="Frage senden" hidden>
@@ -275,6 +288,17 @@
                     <p id="modell-hinweis" class="gedaempft" style="margin-top:6px"></p>
                 </section>
                 <section>
+                    <h3>Spracheingabe</h3>
+                    <label for="sprechpause">Absenden nach einer Sprechpause von</label>
+                    <select id="sprechpause">
+                        <option value="2000">2 Sekunden</option>
+                        <option value="3000">3 Sekunden (Standard)</option>
+                        <option value="5000">5 Sekunden</option>
+                        <option value="0">nie – nur per Antippen des Mikrofons</option>
+                    </select>
+                    <p class="gedaempft" style="margin-top:6px">Während der Aufnahme sendet ein Tippen auf das Mikrofon sofort. Tippen ins Textfeld stoppt die Aufnahme zum Korrigieren.</p>
+                </section>
+                <section>
                     <h3>Claude-API-Key</h3>
                     <input id="key-claude" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
                     <div class="zeile">
@@ -285,7 +309,7 @@
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Ausbaustufe 2 (Import, Suche, Claude) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Ausbaustufe 2.1 (Spracheingabe mit Pausen) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -309,11 +333,12 @@
         import { lese, schreibe, dauerhaftSpeichern } from './speicher.js';
         import { markdownZuHtml, maskiere } from './darstellung.js';
         import { MODELLE, STANDARD_MODELL, baueSystemPrompt, baueFrage, findeHausregeln, frageClaude, KiFehler } from './ki.js';
+        import { Spracheingabe } from './sprache.js';
 
         const $ = (id) => document.getElementById(id);
         const verlauf = $('verlauf');
         const feld = $('frage');
-        const LS = { modell: 'kfzsv.modell', keyClaude: 'kfzsv.key.claude' };
+        const LS = { modell: 'kfzsv.modell', keyClaude: 'kfzsv.key.claude', pause: 'kfzsv.sprechpause' };
 
         const lies = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
         const merke = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* privates Fenster */ } };
@@ -510,43 +535,35 @@
         $('senden').addEventListener('click', () => frageStellen(feld.value));
 
         // --- Spracheingabe ----------------------------------------------------
+        // Hört über Denkpausen hinweg zu; Antippen oder eine längere Pause schickt ab.
         const Erkennung = window.SpeechRecognition || window.webkitSpeechRecognition;
         const knopf = $('mikro');
-        let erkennung = null;
+        const pauseMs = () => { const w = lies(LS.pause); return w === '' ? 3000 : Number(w); };
+        const hinweis = $('hoerhinweis');
+        const sprache = Erkennung && new Spracheingabe({
+            Erkennung,
+            beiText: (t) => { feld.value = t; anpassen(); },
+            beiStatus: (zustand, meldung) => {
+                const an = zustand === 'hoert';
+                knopf.classList.toggle('aktiv', an);
+                knopf.setAttribute('aria-label', an ? 'Aufnahme beenden und Frage senden' : 'Spracheingabe starten');
+                hinweis.hidden = !an;
+                if (an) hinweis.textContent = sprache.pauseMs
+                    ? `Ich höre zu … nach ${sprache.pauseMs / 1000} s Pause oder Antippen wird gesendet`
+                    : 'Ich höre zu … zum Senden das Mikrofon antippen';
+                if (zustand === 'fehler') { verlauf.append(element('p', 'fehler', maskiere(meldung))); nachUnten(); }
+            },
+            beiFertig: (t) => frageStellen(t),
+        });
 
         knopf.addEventListener('click', () => {
-            if (!Erkennung) { feld.focus(); return; } // iOS-Tastatur mit Diktiertaste
-            if (erkennung) { erkennung.stop(); return; }
-
-            erkennung = new Erkennung();
-            erkennung.lang = 'de-AT';
-            erkennung.interimResults = true;
-            erkennung.continuous = false;
-            const vorher = feld.value ? feld.value.trimEnd() + ' ' : '';
-            let fertig = false;
-
-            erkennung.onstart = () => { knopf.classList.add('aktiv'); knopf.setAttribute('aria-label', 'Spracheingabe beenden'); };
-            erkennung.onresult = (e) => {
-                feld.value = vorher + [...e.results].map((r) => r[0].transcript).join('');
-                anpassen();
-                fertig = e.results[e.results.length - 1].isFinal;
-            };
-            erkennung.onerror = (e) => {
-                const meldungen = {
-                    'not-allowed': 'Mikrofon nicht erlaubt (Einstellungen › Apps › Safari › Mikrofon).',
-                    'service-not-allowed': 'Spracherkennung gesperrt (Einstellungen › Allgemein › Tastatur › Diktierfunktion).',
-                    'network': 'Kein Netz für die Spracherkennung.',
-                };
-                if (meldungen[e.error]) verlauf.append(element('p', 'fehler', meldungen[e.error]));
-            };
-            erkennung.onend = () => {
-                knopf.classList.remove('aktiv');
-                knopf.setAttribute('aria-label', 'Spracheingabe starten');
-                erkennung = null;
-                if (fertig && feld.value.trim()) frageStellen(feld.value); // gesprochene Frage gleich absenden
-            };
-            erkennung.start();
+            if (!sprache) { feld.focus(); return; } // ohne Spracherkennung: iOS-Tastatur mit Diktiertaste
+            if (sprache.aktiv) { sprache.stopp(true); return; }
+            sprache.pauseMs = pauseMs();
+            sprache.start(feld.value);
         });
+        // Wer ins Textfeld tippt, will korrigieren: Aufnahme beenden, nicht senden
+        feld.addEventListener('pointerdown', () => { if (sprache?.aktiv) sprache.stopp(false); });
 
         // --- Einstellungen ----------------------------------------------------
         const modellAuswahl = $('modell');
@@ -554,7 +571,11 @@
         const zeigeModellHinweis = () => { $('modell-hinweis').textContent = modellInfo().hinweis; };
         modellAuswahl.addEventListener('change', () => { merke(LS.modell, modellAuswahl.value); zeigeModellHinweis(); zeigeStatus(); });
 
+        $('sprechpause').addEventListener('change', (e) => merke(LS.pause, e.target.value));
+
         $('einstellungen-oeffnen').addEventListener('click', async () => {
+            if (sprache?.aktiv) sprache.stopp(false);
+            $('sprechpause').value = String(pauseMs());
             modellAuswahl.value = modellInfo().id;
             zeigeModellHinweis();
             $('key-claude').value = '';
