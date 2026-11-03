@@ -356,7 +356,7 @@
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Version 4 (Schnellfragen, Vorlesen, Kopieren) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Version 4.1 (bessere Suche bei mehrdeutigen Fragen) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -376,12 +376,12 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=5';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=5';
-        import { markdownZuHtml, maskiere } from './darstellung.js?v=5';
-        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=5';
-        import { Spracheingabe } from './sprache.js?v=5';
-        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=5';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=6';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=6';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=6';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=6';
+        import { Spracheingabe } from './sprache.js?v=6';
+        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=6';
 
         // Häufige Fragen als Knöpfe auf dem Startbildschirm: [Beschriftung, Frage]
         const SCHNELLFRAGEN = [

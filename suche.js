@@ -177,6 +177,9 @@ const SYNONYM_GRUPPEN = [
     ['erstzulassung', 'ez', 'zulassung'],
     ['erneuert', 'erneuerung', 'ersetzt', 'getauscht', 'tausch'],
     ['alt', 'alter', 'fahrzeugalter', 'altersgrenze'],
+    ['abdeckarbeit', 'abdecken', 'abkleben', 'abdeckmaterial', 'abdeckung'],
+    ['zweifarbig', 'andersfarbig', 'teilweise', 'teillackiert'],
+    ['scheibe', 'verglasung', 'windschutzscheibe'],
 ];
 
 const SYNONYME = new Map();
@@ -208,6 +211,7 @@ export function begriffe(text) {
 const K1 = 1.2;
 const B = 0.75;
 const PFAD_GEWICHT = 2; // Begriffe aus den Überschriften zählen doppelt
+const ABDECKUNG = 1;    // Gewicht der Abdeckung: Anteil getroffener Fragebegriffe hoch diesem Wert
 
 /** Baut einen serialisierbaren Suchindex (nur einfache Objekte, für IndexedDB geeignet). */
 export function baueIndex(abschnitte) {
@@ -232,34 +236,53 @@ export function baueIndex(abschnitte) {
  * Sucht die passendsten Abschnitte.
  * @returns {{abschnitt:object, punkte:number}[]} absteigend nach Punkten
  */
-export function suche(index, abschnitte, frage, { anzahl = 10, maxProDokument = 2 } = {}) {
+export function suche(index, abschnitte, frage, { anzahl = 10, maxProDokument = 2, abdeckung = ABDECKUNG } = {}) {
+    // Jeder Fragebegriff bildet eine Gruppe aus sich selbst, Synonymen und Wortteilen
     const gewichte = new Map();
-    const setze = (begriff, gewicht) => gewichte.set(begriff, Math.max(gewichte.get(begriff) || 0, gewicht));
+    const gruppen = new Map(); // Begriff → Bitmaske der Fragebegriffe, zu denen er passt
+    const setze = (begriff, gewicht, gruppe) => {
+        gewichte.set(begriff, Math.max(gewichte.get(begriff) || 0, gewicht));
+        gruppen.set(begriff, (gruppen.get(begriff) || 0) | (1 << gruppe));
+    };
     const wortschatz = Object.keys(index.df);
-    for (const b of begriffe(frage)) {
-        setze(b, 1);
-        for (const s of SYNONYME.get(b) || []) setze(s, 0.7);
+    const fragebegriffe = [...new Set(begriffe(frage))].slice(0, 30);
+    fragebegriffe.forEach((b, g) => {
+        setze(b, 1, g);
+        for (const s of SYNONYME.get(b) || []) setze(s, 0.7, g);
         // Zusammengesetzte Wörter: "Berechnungsarten" findet "Berechnung",
         // "Kraftfahrzeug" findet "Fahrzeug" und umgekehrt
         if (b.length >= 6 && !/^\d/.test(b)) {
             for (const w of wortschatz) {
-                if (w !== b && w.length >= 5 && (b.startsWith(w) || b.endsWith(w) || (w.length > b.length && w.includes(b)))) setze(w, 0.5);
+                if (w !== b && w.length >= 5 && (b.startsWith(w) || b.endsWith(w) || (w.length > b.length && w.includes(b)))) setze(w, 0.5, g);
             }
         }
-    }
+    });
     if (!gewichte.size) return [];
 
     const punkte = new Float64Array(index.anzahl);
+    const getroffen = new Uint32Array(index.anzahl);
     for (const [begriff, gewicht] of gewichte) {
         const df = index.df[begriff];
         if (!df) continue;
         const idf = Math.log(1 + (index.anzahl - df + 0.5) / (df + 0.5));
+        const maske = gruppen.get(begriff);
         for (let i = 0; i < index.anzahl; i++) {
             const tf = index.haeufigkeiten[i][begriff];
             if (!tf) continue;
             const norm = tf * (K1 + 1) / (tf + K1 * (1 - B + B * index.laengen[i] / index.mittlereLaenge));
             punkte[i] += gewicht * idf * norm;
+            getroffen[i] |= maske;
         }
+    }
+
+    // Abdeckung: Abschnitte, die viele verschiedene Fragebegriffe enthalten, schlagen solche,
+    // die nur einen Begriff oft wiederholen (z. B. "Scheibe" in Glas-Katalogen)
+    const anzahlBegriffe = fragebegriffe.length;
+    for (let i = 0; i < index.anzahl; i++) {
+        if (!punkte[i]) continue;
+        let n = 0;
+        for (let m = getroffen[i]; m; m &= m - 1) n++;
+        punkte[i] *= (n / anzahlBegriffe) ** abdeckung;
     }
 
     const sortiert = [...punkte.keys()].filter((i) => punkte[i] > 0).sort((a, b) => punkte[b] - punkte[a]);
