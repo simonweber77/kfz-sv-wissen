@@ -1,12 +1,18 @@
-// KFZ-SV Wissen – Aufbau der Anfrage und Anbindung der KI (Claude; Gemini folgt in Ausbaustufe A5).
+// KFZ-SV Wissen – Aufbau der Anfrage und Anbindung der KI (Claude oder Google Gemini).
 // Firmenspezifische Regeln stehen nicht hier, sondern kommen aus den importierten Unterlagen.
 
 export const MODELLE = [
-    { anbieter: 'claude', id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', hinweis: 'Standard – schnell und genau' },
-    { anbieter: 'claude', id: 'claude-opus-5-5', name: 'Claude Opus 5.5', hinweis: 'knifflige Fälle, beste Qualität' },
-    { anbieter: 'claude', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', hinweis: 'am schnellsten, einfache Fragen' },
+    { anbieter: 'claude', id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', hinweis: 'Standard – schnell und genau (ca. 2 Cent pro Frage)' },
+    { anbieter: 'claude', id: 'claude-opus-5-5', name: 'Claude Opus 5.5', hinweis: 'knifflige Fälle, beste Qualität (ca. 4–5 Cent)' },
+    { anbieter: 'claude', id: 'claude-haiku-5-5', name: 'Claude Haiku 5.5', hinweis: 'am schnellsten, einfache Fragen (ca. 0,1 Cent)' },
+    { anbieter: 'gemini', id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', hinweis: 'schnell und günstig (ca. 0,8 Cent)' },
+    { anbieter: 'gemini', id: 'gemini-4-argon', name: 'Gemini 4 Argon', hinweis: 'Googles Spitzenmodell (ca. 2 Cent)' },
+    { anbieter: 'gemini', id: 'gemini-3.5-flash-lite', name: 'Gemini 3.5 Flash-Lite', hinweis: 'am billigsten (ca. 0,4 Cent)' },
 ];
 export const STANDARD_MODELL = 'claude-sonnet-5-5';
+export const ANBIETER = { claude: 'Claude', gemini: 'Google Gemini' };
+
+const VERLAUF_RUNDEN = 3; // so viele frühere Fragen/Antworten gehen als Zusammenhang mit
 
 const CLAUDE_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2026-10-21';
@@ -48,6 +54,25 @@ export function baueFrage(frage, treffer) {
     return `<auszuege>\n${auszuege}\n</auszuege>\n\nFrage: ${frage}`;
 }
 
+/**
+ * Nachrichten für die KI: die letzten Gesprächsrunden (ohne alte Auszüge und Quellen-Nummern)
+ * und zuletzt die aktuelle Frage mit ihren Auszügen.
+ * @param {{frage:string, antwort:string}[]} verlauf
+ */
+export function baueNachrichten(verlauf, frage, treffer) {
+    const frueher = verlauf.slice(-VERLAUF_RUNDEN).flatMap((r) => [
+        { role: 'user', content: r.frage },
+        { role: 'assistant', content: r.antwort.replace(/\s*\[\d{1,2}(?:\s*[,;]\s*\d{1,2})*\]/g, '') },
+    ]);
+    return [...frueher, { role: 'user', content: baueFrage(frage, treffer) }];
+}
+
+/** Kurze Nachfragen ("und bei Hybrid?") werden zusammen mit der vorigen Frage gesucht. */
+export function suchtextFuer(frage, verlauf) {
+    const woerter = frage.trim().split(/\s+/).length;
+    return verlauf.length && woerter <= 8 ? `${verlauf.at(-1).frage} ${frage}` : frage;
+}
+
 export class KiFehler extends Error {}
 
 function fehlerText(status, details) {
@@ -66,7 +91,8 @@ async function leseEreignisse(antwort, beiEreignis) {
     for (;;) {
         const { done, value } = await leser.read();
         if (done) break;
-        puffer += dekoder.decode(value, { stream: true });
+        // Google trennt Ereignisse mit \r\n\r\n, Anthropic mit \n\n; ein \r am Ende wartet auf sein \n
+        puffer = (puffer + dekoder.decode(value, { stream: true })).replace(/\r\n/g, '\n');
         let grenze;
         while ((grenze = puffer.indexOf('\n\n')) >= 0) {
             const block = puffer.slice(0, grenze);
@@ -125,4 +151,72 @@ export async function frageClaude({ key, modell, system, nachrichten, beiText, s
     });
     if (stopGrund === 'refusal') throw new KiFehler('Die KI hat diese Anfrage abgelehnt. Bitte anders formulieren.');
     return { stopGrund, modell: genutztesModell };
+}
+
+// ---------------------------------------------------------------------------
+// Google Gemini (gleicher Aufruf wie in der SV-Toolbox, zusätzlich gestreamt)
+// ---------------------------------------------------------------------------
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+function geminiFehlerText(status, details) {
+    if (/api key|api_key/i.test(details) || status === 401) return 'Der Google-API-Key wird nicht akzeptiert. Bitte in den Einstellungen prüfen.';
+    if (status === 403) return 'Der Google-API-Key hat keine Berechtigung für dieses Modell.';
+    if (status === 404) return 'Dieses Gemini-Modell ist für deinen Key nicht verfügbar. Bitte ein anderes wählen.';
+    return fehlerText(status, details);
+}
+
+async function geminiAnfrage({ key, modell, koerper, signal }) {
+    try {
+        return await fetch(`${GEMINI_URL}/${encodeURIComponent(modell)}:streamGenerateContent?alt=sse`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+            body: JSON.stringify(koerper),
+            signal,
+        });
+    } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        throw new KiFehler('Keine Verbindung zum KI-Dienst. Bist du online?');
+    }
+}
+
+/** Stellt die Frage an Gemini und streamt die Antwort. Parameter wie frageClaude. */
+export async function frageGemini({ key, modell, system, nachrichten, beiText, signal }) {
+    const koerper = {
+        systemInstruction: { parts: [{ text: system }] },
+        contents: nachrichten.map((n) => ({ role: n.role === 'assistant' ? 'model' : 'user', parts: [{ text: n.content }] })),
+        generationConfig: { maxOutputTokens: 16000, thinkingConfig: { thinkingLevel: 'low' } },
+    };
+    let antwort = await geminiAnfrage({ key, modell, koerper, signal });
+    if (antwort.status === 400) {
+        // Lehnt Google die Denkstufe ab, ohne sie wiederholen (Standardeinstellung des Modells)
+        const details = await antwort.clone().json().then((j) => j.error?.message || '').catch(() => '');
+        if (/thinking/i.test(details)) {
+            delete koerper.generationConfig.thinkingConfig;
+            antwort = await geminiAnfrage({ key, modell, koerper, signal });
+        }
+    }
+    if (!antwort.ok) {
+        let details = '';
+        try { details = (await antwort.json()).error?.message || ''; } catch { /* Antwort ohne JSON */ }
+        throw new KiFehler(geminiFehlerText(antwort.status, details));
+    }
+
+    let stopGrund = '';
+    await leseEreignisse(antwort, (e) => {
+        if (e.error) throw new KiFehler(geminiFehlerText(e.error.code || 500, e.error.message));
+        const kandidat = e.candidates?.[0];
+        for (const teil of kandidat?.content?.parts || []) {
+            if (teil.text && !teil.thought) beiText(teil.text);
+        }
+        if (kandidat?.finishReason) stopGrund = kandidat.finishReason;
+    });
+    if (/SAFETY|PROHIBITED|BLOCKLIST|RECITATION/.test(stopGrund)) throw new KiFehler('Die KI hat diese Anfrage abgelehnt. Bitte anders formulieren.');
+    return { stopGrund: stopGrund === 'MAX_TOKENS' ? 'max_tokens' : stopGrund.toLowerCase(), modell };
+}
+
+/** Wählt den Anbieter passend zum Modell. */
+export function frageKi(parameter) {
+    const anbieter = MODELLE.find((m) => m.id === parameter.modell)?.anbieter || 'claude';
+    return anbieter === 'gemini' ? frageGemini(parameter) : frageClaude(parameter);
 }

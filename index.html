@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="robots" content="noindex, nofollow">
+    <!-- Verbindungen nur zur eigenen Seite und zu den beiden KI-Diensten -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.anthropic.com https://generativelanguage.googleapis.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#00224f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -241,6 +244,11 @@
             <h1>KFZ-SV Wissen</h1>
             <p id="status">Fragen zu deinen Unterlagen</p>
         </div>
+        <button id="neu" class="rund" type="button" aria-label="Neues Gespräch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path>
+            </svg>
+        </button>
         <button id="einstellungen-oeffnen" class="rund" type="button" aria-label="Einstellungen">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3"></circle>
@@ -298,18 +306,31 @@
                     </select>
                     <p class="gedaempft" style="margin-top:6px">Während der Aufnahme sendet ein Tippen auf das Mikrofon sofort. Tippen ins Textfeld stoppt die Aufnahme zum Korrigieren.</p>
                 </section>
-                <section>
+                <section data-anbieter="claude">
                     <h3>Claude-API-Key</h3>
-                    <input id="key-claude" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+                    <input class="key-feld" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Claude-API-Key">
                     <div class="zeile">
-                        <button id="key-speichern" class="knopf" type="button">Speichern</button>
-                        <button id="key-loeschen" class="knopf zweit" type="button">Löschen</button>
+                        <button class="knopf key-speichern" type="button">Speichern</button>
+                        <button class="knopf zweit key-loeschen" type="button">Löschen</button>
                     </div>
-                    <p id="key-status" class="gedaempft" style="margin-top:8px">Der Key wird nur auf diesem Gerät gespeichert. An die KI gehen pro Frage nur die Frage und bis zu 10 passende Auszüge.</p>
+                    <p class="gedaempft key-status" style="margin-top:8px">Nur auf diesem Gerät gespeichert. Anthropic verwendet API-Eingaben nicht zum Training.</p>
+                </section>
+                <section data-anbieter="gemini">
+                    <h3>Google-Gemini-API-Key</h3>
+                    <input class="key-feld" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Google-Gemini-API-Key">
+                    <div class="zeile">
+                        <button class="knopf key-speichern" type="button">Speichern</button>
+                        <button class="knopf zweit key-loeschen" type="button">Löschen</button>
+                    </div>
+                    <p class="gedaempft key-status" style="margin-top:8px">Nur auf diesem Gerät gespeichert. <strong>Wichtig:</strong> Mit einem kostenlosen Google-Key verwendet Google die Eingaben zur Verbesserung seiner Produkte. Für interne Unterlagen nur einen Key mit aktivierter Abrechnung verwenden.</p>
+                </section>
+                <section>
+                    <h3>Datenschutz</h3>
+                    <p class="gedaempft">Deine Unterlagen bleiben auf diesem Gerät. An die gewählte KI gehen pro Frage nur die Frage, bis zu 10 passende Auszüge und die letzten 3 Fragen und Antworten des Gesprächs.</p>
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Ausbaustufe 2.1 (Spracheingabe mit Pausen) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Ausbaustufe 3 (Gemini, Nachfragen) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -329,22 +350,23 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js';
-        import { markdownZuHtml, maskiere } from './darstellung.js';
-        import { MODELLE, STANDARD_MODELL, baueSystemPrompt, baueFrage, findeHausregeln, frageClaude, KiFehler } from './ki.js';
-        import { Spracheingabe } from './sprache.js';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=4';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=4';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=4';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=4';
+        import { Spracheingabe } from './sprache.js?v=4';
 
         const $ = (id) => document.getElementById(id);
         const verlauf = $('verlauf');
         const feld = $('frage');
-        const LS = { modell: 'kfzsv.modell', keyClaude: 'kfzsv.key.claude', pause: 'kfzsv.sprechpause' };
+        const LS = { modell: 'kfzsv.modell', pause: 'kfzsv.sprechpause', key: (anbieter) => `kfzsv.key.${anbieter}` };
 
         const lies = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
         const merke = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* privates Fenster */ } };
 
         let wissen = null;          // { abschnitte, index, meta }
         let laufend = null;         // AbortController der aktuellen Antwort
+        let gespraech = [];         // bisherige Runden { frage, antwort } für Nachfragen
         const trefferJeKarte = new WeakMap();
 
         // --- Hilfen ----------------------------------------------------------
@@ -376,9 +398,10 @@
                     <p>Lade zuerst deine Unterlagen als <strong>.md-Datei</strong>. Sie bleiben nur auf diesem iPhone gespeichert.</p>
                     <div class="zeile"><button class="knopf" type="button" data-aktion="laden">Unterlagen laden</button></div>`;
             } else {
+                const anbieter = modellInfo().anbieter;
                 karte.innerHTML = `<h2>Frag einfach</h2>
-                    <p>Tippe auf das Mikrofon und sprich deine Frage, oder schreib sie ins Feld. Die Antwort kommt mit Quellenangaben – antippen öffnet die Fundstelle.</p>
-                    ${lies(LS.keyClaude) ? '' : '<p class="gedaempft">Ohne API-Key zeigt die App nur die Fundstellen. Den Key trägst du unter Einstellungen ein.</p>'}`;
+                    <p>Tippe auf das Mikrofon und sprich deine Frage, oder schreib sie ins Feld. Die Antwort kommt mit Quellenangaben – antippen öffnet die Fundstelle. Nachfragen wie „und bei Hybrid?“ verstehe ich im Zusammenhang; ✎ oben startet ein neues Gespräch.</p>
+                    ${lies(LS.key(anbieter)) ? '' : `<p class="gedaempft">Ohne ${ANBIETER[anbieter]}-API-Key zeigt die App nur die Fundstellen. Den Key trägst du unter Einstellungen ein.</p>`}`;
             }
             verlauf.append(karte);
         }
@@ -461,16 +484,17 @@
                 return nachUnten();
             }
 
-            const treffer = suche(wissen.index, wissen.abschnitte, text);
+            const treffer = suche(wissen.index, wissen.abschnitte, suchtextFuer(text, gespraech));
             trefferJeKarte.set(karte, treffer);
             if (!treffer.length) {
                 karte.innerHTML = '<p>Dazu habe ich in den Unterlagen nichts gefunden. Versuch es mit anderen Begriffen.</p>';
                 return nachUnten();
             }
 
-            const key = lies(LS.keyClaude);
+            const m = modellInfo();
+            const key = lies(LS.key(m.anbieter));
             if (!key || !navigator.onLine) {
-                karte.innerHTML = `<p class="gedaempft">${!key ? 'Kein API-Key eingetragen' : 'Offline'} – hier sind die passendsten Fundstellen:</p>`;
+                karte.innerHTML = `<p class="gedaempft">${!key ? `Kein ${ANBIETER[m.anbieter]}-API-Key eingetragen` : 'Offline'} – hier sind die passendsten Fundstellen:</p>`;
                 karte.append(quellenListe(treffer, true));
                 return nachUnten();
             }
@@ -487,25 +511,28 @@
                 nachUnten();
             };
             const start = performance.now();
+            let erstesWort = start;
             const steuerung = new AbortController();
             laufend = steuerung;
-            const m = modellInfo();
             try {
-                const ergebnis = await frageClaude({
+                const ergebnis = await frageKi({
                     key,
                     modell: m.id,
                     system: baueSystemPrompt(wissen.meta.hausregeln),
-                    nachrichten: [{ role: 'user', content: baueFrage(text, treffer) }],
+                    nachrichten: baueNachrichten(gespraech, text, treffer),
                     signal: steuerung.signal,
                     beiText: (stueck) => {
+                        if (!antwort) erstesWort = performance.now();
                         antwort += stueck;
                         if (!geplant) { geplant = true; requestAnimationFrame(zeichne); }
                     },
                 });
                 zeichne();
                 textFeld.classList.remove('lade');
+                if (antwort.trim()) gespraech.push({ frage: text, antwort });
+                const sek = (ms) => (ms / 1000).toFixed(1).replace('.', ',');
                 const fuss = element('div', 'fusszeile gedaempft',
-                    `<span>${maskiere(MODELLE.find((x) => x.id === ergebnis.modell)?.name || ergebnis.modell)} · ${((performance.now() - start) / 1000).toFixed(1)} s</span>`);
+                    `<span>${maskiere(MODELLE.find((x) => x.id === ergebnis.modell)?.name || ergebnis.modell)} · erstes Wort nach ${sek(erstesWort - start)} s · fertig nach ${sek(performance.now() - start)} s</span>`);
                 if (ergebnis.stopGrund === 'max_tokens') fuss.append(element('span', 'fehler', 'Antwort wurde abgeschnitten.'));
                 textFeld.after(fuss);
             } catch (e) {
@@ -567,7 +594,10 @@
 
         // --- Einstellungen ----------------------------------------------------
         const modellAuswahl = $('modell');
-        modellAuswahl.innerHTML = MODELLE.map((m) => `<option value="${m.id}">${maskiere(m.name)}</option>`).join('');
+        modellAuswahl.innerHTML = Object.entries(ANBIETER).map(([anbieter, name]) =>
+            `<optgroup label="${maskiere(name)}">` +
+            MODELLE.filter((m) => m.anbieter === anbieter).map((m) => `<option value="${m.id}">${maskiere(m.name)}</option>`).join('') +
+            '</optgroup>').join('');
         const zeigeModellHinweis = () => { $('modell-hinweis').textContent = modellInfo().hinweis; };
         modellAuswahl.addEventListener('change', () => { merke(LS.modell, modellAuswahl.value); zeigeModellHinweis(); zeigeStatus(); });
 
@@ -578,8 +608,7 @@
             $('sprechpause').value = String(pauseMs());
             modellAuswahl.value = modellInfo().id;
             zeigeModellHinweis();
-            $('key-claude').value = '';
-            $('key-claude').placeholder = lies(LS.keyClaude) ? '•••••••• (gespeichert)' : 'sk-ant-…';
+            keyBereiche.forEach(zeigeKey);
             try {
                 const s = await navigator.storage?.estimate?.();
                 const dauerhaft = await navigator.storage?.persisted?.();
@@ -587,18 +616,42 @@
             } catch { /* nicht unterstützt */ }
             $('einstellungen').showModal();
         });
-        $('key-speichern').addEventListener('click', () => {
-            const key = $('key-claude').value.trim();
-            if (!key) return;
-            merke(LS.keyClaude, key);
-            $('key-claude').value = '';
-            $('key-claude').placeholder = '•••••••• (gespeichert)';
-            $('key-status').textContent = '✓ Key gespeichert (nur auf diesem Gerät).';
+        // Key-Felder je Anbieter (Claude, Gemini)
+        const keyBereiche = document.querySelectorAll('section[data-anbieter]');
+        const PLATZHALTER = { claude: 'sk-ant-…', gemini: 'AIza…' };
+        function zeigeKey(bereich) {
+            const anbieter = bereich.dataset.anbieter;
+            const eingabe = bereich.querySelector('.key-feld');
+            eingabe.value = '';
+            eingabe.placeholder = lies(LS.key(anbieter)) ? '•••••••• (gespeichert)' : PLATZHALTER[anbieter];
+        }
+        keyBereiche.forEach((bereich) => {
+            const anbieter = bereich.dataset.anbieter;
+            const meldung = (text) => {
+                let p = bereich.querySelector('.key-meldung');
+                if (!p) { p = element('p', 'gedaempft key-meldung'); bereich.querySelector('.zeile').after(p); }
+                p.textContent = text;
+            };
+            bereich.querySelector('.key-speichern').addEventListener('click', () => {
+                const key = bereich.querySelector('.key-feld').value.trim();
+                if (!key) return;
+                merke(LS.key(anbieter), key);
+                zeigeKey(bereich);
+                meldung('✓ Key gespeichert (nur auf diesem Gerät).');
+            });
+            bereich.querySelector('.key-loeschen').addEventListener('click', () => {
+                merke(LS.key(anbieter), '');
+                zeigeKey(bereich);
+                meldung('Key gelöscht.');
+            });
         });
-        $('key-loeschen').addEventListener('click', () => {
-            merke(LS.keyClaude, '');
-            $('key-claude').placeholder = 'sk-ant-…';
-            $('key-status').textContent = 'Key gelöscht.';
+
+        // Neues Gespräch: Zusammenhang für Nachfragen zurücksetzen
+        $('neu').addEventListener('click', () => {
+            if (laufend) laufend.abort();
+            if (sprache?.aktiv) sprache.stopp(false);
+            gespraech = [];
+            willkommen();
         });
         document.querySelectorAll('dialog .schliessen').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
         document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
