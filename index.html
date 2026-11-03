@@ -152,6 +152,22 @@
         @keyframes blinken { 50% { opacity: 0; } }
         .fehler { color: var(--sv-red); font-weight: 600; }
         .fusszeile { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .chip {
+            min-height: 40px; padding: 8px 14px; border-radius: 20px; cursor: pointer;
+            border: 1px solid var(--sv-border); background: var(--sv-surface-alt); color: var(--sv-text);
+            font-size: 14px; font-weight: 600;
+        }
+        .chip:active { transform: scale(.97); }
+        .aktionen { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .aktion {
+            min-height: 40px; padding: 8px 14px; border-radius: var(--sv-radius-sm); cursor: pointer;
+            border: 1px solid var(--sv-border); background: var(--sv-surface-alt); color: var(--sv-text);
+            font-size: 14px; font-weight: 600;
+        }
+        .aktion.laeuft { border-color: var(--sv-red); color: var(--sv-red); }
+        .anleitung ol { margin: 0; padding-left: 20px; }
+        .anleitung li { margin-bottom: 6px; }
 
         /* Fundstellen */
         details.quellen { margin-top: 12px; border-top: 1px solid var(--sv-border); padding-top: 8px; }
@@ -324,13 +340,23 @@
                     </div>
                     <p class="gedaempft key-status" style="margin-top:8px">Nur auf diesem Gerät gespeichert. <strong>Wichtig:</strong> Mit einem kostenlosen Google-Key verwendet Google die Eingaben zur Verbesserung seiner Produkte. Für interne Unterlagen nur einen Key mit aktivierter Abrechnung verwenden.</p>
                 </section>
+                <section class="anleitung">
+                    <h3>Kurzanleitung</h3>
+                    <ol class="gedaempft">
+                        <li><strong>Installieren:</strong> Seite in Safari öffnen → Teilen → „Zum Home-Bildschirm“.</li>
+                        <li><strong>Unterlagen laden:</strong> oben „Unterlagen laden (.md)“ → Datei aus Google Drive oder der Dateien-App wählen. Für eine neue Fassung einfach erneut laden.</li>
+                        <li><strong>KI wählen und Key eintragen:</strong> Modell auswählen und den passenden API-Key speichern.</li>
+                        <li><strong>Fragen:</strong> Mikrofon antippen und sprechen – nach der eingestellten Pause oder per Antippen wird gesendet. Nummern in der Antwort öffnen die Fundstelle.</li>
+                        <li><strong>Weiterverwenden:</strong> „Kopieren“ übernimmt die Antwort ohne Quellen-Nummern (z. B. für eine E-Mail), „Vorlesen“ liest sie vor. ✎ oben startet ein neues Gespräch.</li>
+                    </ol>
+                </section>
                 <section>
                     <h3>Datenschutz</h3>
                     <p class="gedaempft">Deine Unterlagen bleiben auf diesem Gerät. An die gewählte KI gehen pro Frage nur die Frage, bis zu 10 passende Auszüge und die letzten 3 Fragen und Antworten des Gesprächs.</p>
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Ausbaustufe 3 (Gemini, Nachfragen) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Version 4 (Schnellfragen, Vorlesen, Kopieren) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -350,11 +376,22 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=4';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=4';
-        import { markdownZuHtml, maskiere } from './darstellung.js?v=4';
-        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=4';
-        import { Spracheingabe } from './sprache.js?v=4';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=5';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=5';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=5';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=5';
+        import { Spracheingabe } from './sprache.js?v=5';
+        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=5';
+
+        // Häufige Fragen als Knöpfe auf dem Startbildschirm: [Beschriftung, Frage]
+        const SCHNELLFRAGEN = [
+            ['Ablöse-Stundensätze', 'Wie hoch sind die Ablösestundensätze je Bundesland?'],
+            ['HV-Quarantäne', 'Wann muss ein Hochvolt-Fahrzeug in Quarantäne gestellt werden?'],
+            ['Salzburger Formel', 'Wie funktioniert die Salzburger Formel für die merkantile Wertminderung?'],
+            ['Nebenkostenpauschale', 'Wie hoch ist die Nebenkostenpauschale und wann darf sie verrechnet werden?'],
+            ['Kleinmaterial', 'Wie viel Kleinmaterial darf verrechnet werden?'],
+            ['Pflichtangaben', 'Welche Pflichtangaben muss ein Gutachten enthalten?'],
+        ];
 
         const $ = (id) => document.getElementById(id);
         const verlauf = $('verlauf');
@@ -368,6 +405,7 @@
         let laufend = null;         // AbortController der aktuellen Antwort
         let gespraech = [];         // bisherige Runden { frage, antwort } für Nachfragen
         const trefferJeKarte = new WeakMap();
+        const antwortJeKarte = new WeakMap();
 
         // --- Hilfen ----------------------------------------------------------
         function element(tag, klasse, html) {
@@ -401,7 +439,9 @@
                 const anbieter = modellInfo().anbieter;
                 karte.innerHTML = `<h2>Frag einfach</h2>
                     <p>Tippe auf das Mikrofon und sprich deine Frage, oder schreib sie ins Feld. Die Antwort kommt mit Quellenangaben – antippen öffnet die Fundstelle. Nachfragen wie „und bei Hybrid?“ verstehe ich im Zusammenhang; ✎ oben startet ein neues Gespräch.</p>
-                    ${lies(LS.key(anbieter)) ? '' : `<p class="gedaempft">Ohne ${ANBIETER[anbieter]}-API-Key zeigt die App nur die Fundstellen. Den Key trägst du unter Einstellungen ein.</p>`}`;
+                    ${lies(LS.key(anbieter)) ? '' : `<p class="gedaempft">Ohne ${ANBIETER[anbieter]}-API-Key zeigt die App nur die Fundstellen. Den Key trägst du unter Einstellungen ein.</p>`}
+                    <div class="chips">${SCHNELLFRAGEN.map(([kurz, frage]) =>
+                        `<button type="button" class="chip" data-schnell="${maskiere(frage)}">${maskiere(kurz)}</button>`).join('')}</div>`;
             }
             verlauf.append(karte);
         }
@@ -457,8 +497,32 @@
             return d;
         }
 
-        verlauf.addEventListener('click', (e) => {
+        verlauf.addEventListener('click', async (e) => {
             if (e.target.closest('[data-aktion="laden"]')) return dateiWaehlen();
+            const schnell = e.target.closest('[data-schnell]');
+            if (schnell) return frageStellen(schnell.dataset.schnell);
+
+            const aktion = e.target.closest('[data-aktion="vorlesen"], [data-aktion="kopieren"]');
+            if (aktion) {
+                const antwort = antwortJeKarte.get(aktion.closest('.karte'));
+                if (!antwort) return;
+                if (aktion.dataset.aktion === 'kopieren') {
+                    try {
+                        await navigator.clipboard.writeText(klartext(antwort));
+                        aktion.textContent = '✓ Kopiert';
+                    } catch {
+                        aktion.textContent = 'Kopieren nicht möglich';
+                    }
+                    setTimeout(() => { aktion.textContent = '📋 Kopieren'; }, 2000);
+                } else if (aktion.classList.contains('laeuft')) {
+                    stoppeVorlesen();
+                } else {
+                    aktion.classList.add('laeuft');
+                    aktion.textContent = '■ Stopp';
+                    lieseVor(antwort, () => { aktion.classList.remove('laeuft'); aktion.textContent = '🔊 Vorlesen'; });
+                }
+                return;
+            }
             const ziel = e.target.closest('.zitat, .quelle');
             if (!ziel) return;
             const karte = ziel.closest('.karte');
@@ -471,6 +535,7 @@
             text = text.trim();
             if (!text) return;
             if (laufend) laufend.abort();
+            stoppeVorlesen();
             if (verlauf.querySelector('.karte h2')) verlauf.innerHTML = ''; // Willkommenskarte entfernen
 
             verlauf.append(element('div', 'frage', maskiere(text)));
@@ -535,6 +600,12 @@
                     `<span>${maskiere(MODELLE.find((x) => x.id === ergebnis.modell)?.name || ergebnis.modell)} · erstes Wort nach ${sek(erstesWort - start)} s · fertig nach ${sek(performance.now() - start)} s</span>`);
                 if (ergebnis.stopGrund === 'max_tokens') fuss.append(element('span', 'fehler', 'Antwort wurde abgeschnitten.'));
                 textFeld.after(fuss);
+                if (antwort.trim()) {
+                    antwortJeKarte.set(karte, antwort);
+                    fuss.before(element('div', 'aktionen',
+                        (kannVorlesen() ? '<button type="button" class="aktion" data-aktion="vorlesen">🔊 Vorlesen</button>' : '') +
+                        '<button type="button" class="aktion" data-aktion="kopieren">📋 Kopieren</button>'));
+                }
             } catch (e) {
                 textFeld.classList.remove('lade');
                 if (e.name === 'AbortError') {
@@ -650,6 +721,7 @@
         $('neu').addEventListener('click', () => {
             if (laufend) laufend.abort();
             if (sprache?.aktiv) sprache.stopp(false);
+            stoppeVorlesen();
             gespraech = [];
             willkommen();
         });
