@@ -39,14 +39,17 @@ export class Spracheingabe {
         this._stille(this.startStilleMs);
     }
 
-    /** Beendet die Aufnahme; `absenden` = gesprochenen Text abschicken. */
+    /** Beendet die Aufnahme sofort; `absenden` = gesprochenen Text abschicken.
+     *  Späte Ereignisse der abgebrochenen Erkennung werden ignoriert, damit nichts nachträglich abschickt. */
     stopp(absenden = true) {
         if (!this.aktiv) return;
         this.aktiv = false;
         this.absenden = absenden;
         this._stille(0);
-        if (this.erkennung) this.erkennung.stop(); // onend schließt ab
-        else this._abschliessen();
+        const e = this.erkennung;
+        this.erkennung = null;
+        e?.abort();
+        this._abschliessen();
     }
 
     get text() {
@@ -66,7 +69,7 @@ export class Spracheingabe {
             this._stille(this.gesprochen ? this.pauseMs : this.startStilleMs);
         };
         e.onerror = (ev) => {
-            if (HARMLOS.has(ev.error)) return;
+            if (e !== this.erkennung || HARMLOS.has(ev.error)) return;
             this.aktiv = false;
             this.absenden = false;
             this._stille(0);

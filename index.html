@@ -356,7 +356,7 @@
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Version 4.1 (bessere Suche bei mehrdeutigen Fragen) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Version 4.2 (Mikrofon stoppt beim Senden sofort) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -376,12 +376,12 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=6';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=6';
-        import { markdownZuHtml, maskiere } from './darstellung.js?v=6';
-        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=6';
-        import { Spracheingabe } from './sprache.js?v=6';
-        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=6';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=7';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=7';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=7';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=7';
+        import { Spracheingabe } from './sprache.js?v=7';
+        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=7';
 
         // Häufige Fragen als Knöpfe auf dem Startbildschirm: [Beschriftung, Frage]
         const SCHNELLFRAGEN = [
@@ -534,6 +534,7 @@
         async function frageStellen(text) {
             text = text.trim();
             if (!text) return;
+            if (sprache?.aktiv) sprache.stopp(false); // Senden beendet die Aufnahme, sonst schickt die Pause ein zweites Mal ab
             if (laufend) laufend.abort();
             stoppeVorlesen();
             if (verlauf.querySelector('.karte h2')) verlauf.innerHTML = ''; // Willkommenskarte entfernen
