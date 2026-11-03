@@ -227,6 +227,12 @@
             70% { box-shadow: 0 0 0 14px rgba(226, 0, 26, 0); }
             100% { box-shadow: 0 0 0 0 rgba(226, 0, 26, 0); }
         }
+        #mikro.lockt { animation: puls-blau 1.4s infinite; } /* iOS hat das Mikrofon nicht von selbst gestartet */
+        @keyframes puls-blau {
+            0% { box-shadow: 0 0 0 0 rgba(0, 55, 129, .5); }
+            70% { box-shadow: 0 0 0 14px rgba(0, 55, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 55, 129, 0); }
+        }
         #mikro svg { width: 26px; height: 26px; }
 
         /* Dialoge als Blatt von unten */
@@ -321,6 +327,11 @@
                         <option value="0">nie – nur per Antippen des Mikrofons</option>
                     </select>
                     <p class="gedaempft" style="margin-top:6px">Während der Aufnahme sendet ein Tippen auf das Mikrofon sofort. Tippen ins Textfeld stoppt die Aufnahme zum Korrigieren.</p>
+                    <label for="beim-oeffnen" style="margin-top:12px">Beim Öffnen der App</label>
+                    <select id="beim-oeffnen">
+                        <option value="">nichts tun (Standard)</option>
+                        <option value="zuhoeren">sofort zuhören – ideal mit der Aktionstaste</option>
+                    </select>
                 </section>
                 <section data-anbieter="claude">
                     <h3>Claude-API-Key</h3>
@@ -356,7 +367,7 @@
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Version 4.3 (Fragen per Kurzbefehl und Aktionstaste) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Version 4.4 (sofort zuhören beim Öffnen, für die Aktionstaste) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -376,12 +387,12 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=8';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=8';
-        import { markdownZuHtml, maskiere } from './darstellung.js?v=8';
-        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=8';
-        import { Spracheingabe } from './sprache.js?v=8';
-        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=8';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=9';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=9';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=9';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=9';
+        import { Spracheingabe } from './sprache.js?v=9';
+        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=9';
 
         // Häufige Fragen als Knöpfe auf dem Startbildschirm: [Beschriftung, Frage]
         const SCHNELLFRAGEN = [
@@ -396,7 +407,7 @@
         const $ = (id) => document.getElementById(id);
         const verlauf = $('verlauf');
         const feld = $('frage');
-        const LS = { modell: 'kfzsv.modell', pause: 'kfzsv.sprechpause', key: (anbieter) => `kfzsv.key.${anbieter}` };
+        const LS = { modell: 'kfzsv.modell', pause: 'kfzsv.sprechpause', oeffnen: 'kfzsv.beimOeffnen', key: (anbieter) => `kfzsv.key.${anbieter}` };
 
         const lies = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
         const merke = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* privates Fenster */ } };
@@ -639,14 +650,23 @@
         const knopf = $('mikro');
         const pauseMs = () => { const w = lies(LS.pause); return w === '' ? 3000 : Number(w); };
         const hinweis = $('hoerhinweis');
+        let automatisch = false; // Aufnahme wurde beim Öffnen von selbst gestartet
+        const bitteAntippen = () => {
+            knopf.classList.add('lockt');
+            hinweis.textContent = 'Zum Sprechen auf das Mikrofon tippen';
+            hinweis.hidden = false;
+        };
         const sprache = Erkennung && new Spracheingabe({
             Erkennung,
-            beiText: (t) => { feld.value = t; anpassen(); },
+            beiText: (t) => { automatisch = false; feld.value = t; anpassen(); },
             beiStatus: (zustand, meldung) => {
+                // iOS erlaubt das Mikrofon oft nur nach Antippen: dann statt Fehler zum Tippen einladen
+                if (zustand === 'fehler' && automatisch) { automatisch = false; return bitteAntippen(); }
                 const an = zustand === 'hoert';
+                if (an) knopf.classList.remove('lockt');
                 knopf.classList.toggle('aktiv', an);
                 knopf.setAttribute('aria-label', an ? 'Aufnahme beenden und Frage senden' : 'Spracheingabe starten');
-                hinweis.hidden = !an;
+                hinweis.hidden = !an && !knopf.classList.contains('lockt');
                 if (an) hinweis.textContent = sprache.pauseMs
                     ? `Ich höre zu … nach ${sprache.pauseMs / 1000} s Pause oder Antippen wird gesendet`
                     : 'Ich höre zu … zum Senden das Mikrofon antippen';
@@ -656,6 +676,7 @@
         });
 
         knopf.addEventListener('click', () => {
+            automatisch = false;
             if (!sprache) { feld.focus(); return; } // ohne Spracherkennung: iOS-Tastatur mit Diktiertaste
             if (sprache.aktiv) { sprache.stopp(true); return; }
             sprache.pauseMs = pauseMs();
@@ -663,6 +684,18 @@
         });
         // Wer ins Textfeld tippt, will korrigieren: Aufnahme beenden, nicht senden
         feld.addEventListener('pointerdown', () => { if (sprache?.aktiv) sprache.stopp(false); });
+
+        // Einstellung „Beim Öffnen sofort zuhören“ (z. B. Aktionstaste öffnet die App). Nicht während
+        // einer Antwort oder beim Vorlesen, sonst hört das Mikrofon die eigene Stimme.
+        const sofortZuhoeren = () => {
+            if (!sprache || sprache.aktiv || lies(LS.oeffnen) !== 'zuhoeren') return;
+            if (document.visibilityState !== 'visible' || laufend || window.speechSynthesis?.speaking || document.querySelector('dialog[open]')) return;
+            automatisch = true;
+            sprache.pauseMs = pauseMs();
+            sprache.start(feld.value);
+            if (!sprache.aktiv) { automatisch = false; bitteAntippen(); }
+        };
+        document.addEventListener('visibilitychange', sofortZuhoeren);
 
         // --- Einstellungen ----------------------------------------------------
         const modellAuswahl = $('modell');
@@ -674,10 +707,12 @@
         modellAuswahl.addEventListener('change', () => { merke(LS.modell, modellAuswahl.value); zeigeModellHinweis(); zeigeStatus(); });
 
         $('sprechpause').addEventListener('change', (e) => merke(LS.pause, e.target.value));
+        $('beim-oeffnen').addEventListener('change', (e) => merke(LS.oeffnen, e.target.value));
 
         $('einstellungen-oeffnen').addEventListener('click', async () => {
             if (sprache?.aktiv) sprache.stopp(false);
             $('sprechpause').value = String(pauseMs());
+            $('beim-oeffnen').value = lies(LS.oeffnen);
             modellAuswahl.value = modellInfo().id;
             zeigeModellHinweis();
             keyBereiche.forEach(zeigeKey);
@@ -745,6 +780,7 @@
         };
         frageAusAdresse();
         window.addEventListener('hashchange', frageAusAdresse); // App war schon offen
+        sofortZuhoeren();
     </script>
 </body>
 </html>
