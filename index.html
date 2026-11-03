@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de-AT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#00224f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KFZ-SV Wissen">
+    <title>KFZ-SV Wissen</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icons/favicon-64.png" sizes="64x64" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <style>
+        /* Design-Tokens aus der SV-Toolbox */
+        :root {
+            --sv-navy: #003781;
+            --sv-navy-dark: #00224f;
+            --sv-red: #e2001a;
+            --sv-red-dark: #b8000f;
+            --sv-bg: oklch(0.975 0.004 255);
+            --sv-surface: #ffffff;
+            --sv-surface-alt: oklch(0.97 0.006 255);
+            --sv-border: oklch(0.9 0.008 255);
+            --sv-text: #16212e;
+            --sv-text-muted: #59667a;
+            --sv-success: #157f3c;
+            --sv-warning: #a9560a;
+            --sv-radius-sm: 8px;
+            --sv-radius: 14px;
+            --sv-radius-lg: 20px;
+            --sv-ease: cubic-bezier(.2, .8, .2, 1);
+            color-scheme: light dark;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --sv-navy: #7ea8e8;
+                --sv-red: #ff5c6e;
+                --sv-bg: oklch(0.19 0.012 255);
+                --sv-surface: oklch(0.235 0.014 255);
+                --sv-surface-alt: oklch(0.265 0.014 255);
+                --sv-border: oklch(0.34 0.014 255);
+                --sv-text: oklch(0.94 0.006 255);
+                --sv-text-muted: oklch(0.7 0.014 255);
+                --sv-success: oklch(0.76 0.15 150);
+                --sv-warning: oklch(0.79 0.14 75);
+            }
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+        body {
+            font-family: 'Geist', 'Instrument Sans', -apple-system, system-ui, sans-serif;
+            background: var(--sv-bg);
+            color: var(--sv-text);
+            -webkit-font-smoothing: antialiased;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Kopfzeile wie in der Toolbox */
+        #kopf {
+            background: #00224f;
+            color: #fff;
+            padding: calc(env(safe-area-inset-top) + 10px) 16px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+        #kopf .marke {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            border-radius: 11px;
+            box-shadow: 0 8px 30px -12px rgba(0, 0, 0, .5);
+        }
+        #kopf h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
+        #kopf p { font-size: 12px; margin: 1px 0 0; color: #9fb2c9; }
+
+        #verlauf {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .karte {
+            background: var(--sv-surface);
+            border: 1px solid var(--sv-border);
+            border-radius: var(--sv-radius);
+            padding: 14px 16px;
+            line-height: 1.5;
+            font-size: 15px;
+        }
+        .karte h2 { font-size: 15px; margin: 0 0 6px; }
+        .karte ul { margin: 6px 0 0; padding-left: 0; list-style: none; }
+        .karte li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-top: 1px solid var(--sv-border); font-size: 14px; }
+        .karte li:first-child { border-top: none; }
+        .ok { color: var(--sv-success); font-weight: 600; }
+        .nein { color: var(--sv-red); font-weight: 600; }
+        .offen { color: var(--sv-text-muted); }
+
+        /* Eingabeleiste unten, mit dem Daumen erreichbar */
+        #eingabe {
+            background: var(--sv-surface);
+            border-top: 1px solid var(--sv-border);
+            padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px);
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+        }
+        #frage {
+            flex: 1;
+            min-height: 48px;
+            max-height: 140px;
+            resize: none;
+            font: inherit;
+            font-size: 16px; /* verhindert Zoom in iOS */
+            padding: 12px 14px;
+            border-radius: var(--sv-radius);
+            border: 1px solid var(--sv-border);
+            background: var(--sv-surface-alt);
+            color: var(--sv-text);
+        }
+        #frage:focus { outline: 2px solid var(--sv-navy); outline-offset: 1px; }
+        #mikro {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+            border: none;
+            border-radius: 50%;
+            background: var(--sv-navy-dark);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform .2s var(--sv-ease), background .2s;
+        }
+        @media (prefers-color-scheme: dark) { #mikro { background: #003781; } }
+        #mikro:active { transform: scale(.94); }
+        #mikro.aktiv { background: var(--sv-red); animation: puls 1.4s infinite; }
+        @keyframes puls {
+            0% { box-shadow: 0 0 0 0 rgba(226, 0, 26, .45); }
+            70% { box-shadow: 0 0 0 14px rgba(226, 0, 26, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(226, 0, 26, 0); }
+        }
+        #mikro svg { width: 26px; height: 26px; }
+    </style>
+</head>
+<body>
+    <header id="kopf">
+        <img class="marke" src="icons/icon-192.png" alt="">
+        <div>
+            <h1>KFZ-SV Wissen</h1>
+            <p>Fragen zu deinen Unterlagen</p>
+        </div>
+    </header>
+
+    <main id="verlauf" aria-live="polite">
+        <section class="karte">
+            <h2>Gerätetest (Ausbaustufe 1)</h2>
+            <p>Bitte einmal auf das Mikrofon tippen, eine Frage sprechen und prüfen, ob der Text im Feld unten erscheint.</p>
+            <ul id="pruefliste">
+                <li><span>Als App vom Home-Bildschirm gestartet</span><span id="p-app" class="offen">…</span></li>
+                <li><span>Spracherkennung vorhanden</span><span id="p-sprache" class="offen">…</span></li>
+                <li><span>Mikrofon-Test</span><span id="p-mikro" class="offen">noch nicht getestet</span></li>
+                <li><span>Offline-Cache aktiv</span><span id="p-offline" class="offen">…</span></li>
+            </ul>
+        </section>
+    </main>
+
+    <footer id="eingabe">
+        <textarea id="frage" rows="1" placeholder="Frage stellen …" aria-label="Frage"></textarea>
+        <button id="mikro" type="button" aria-label="Spracheingabe starten">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                <path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"></path>
+            </svg>
+        </button>
+    </footer>
+
+    <script type="module">
+        const $ = (id) => document.getElementById(id);
+        const setze = (id, text, klasse) => { $(id).textContent = text; $(id).className = klasse; };
+
+        // --- Prüfliste ---------------------------------------------------
+        const alsApp = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        setze('p-app', alsApp ? 'ja' : 'nein (Safari-Tab)', alsApp ? 'ok' : 'nein');
+
+        const Erkennung = window.SpeechRecognition || window.webkitSpeechRecognition;
+        setze('p-sprache', Erkennung ? 'ja' : 'nein → Tastatur-Diktat', Erkennung ? 'ok' : 'nein');
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => navigator.serviceWorker.ready)
+                .then(() => setze('p-offline', 'ja', 'ok'))
+                .catch((e) => setze('p-offline', 'Fehler: ' + e.message, 'nein'));
+        } else {
+            setze('p-offline', 'nicht unterstützt', 'nein');
+        }
+
+        // --- Eingabefeld wächst mit ---------------------------------------
+        const feld = $('frage');
+        const anpassen = () => { feld.style.height = 'auto'; feld.style.height = Math.min(feld.scrollHeight, 140) + 'px'; };
+        feld.addEventListener('input', anpassen);
+
+        // --- Spracheingabe -------------------------------------------------
+        const knopf = $('mikro');
+        let erkennung = null;
+
+        knopf.addEventListener('click', () => {
+            if (!Erkennung) {
+                feld.focus(); // iOS-Tastatur mit Diktiertaste öffnen
+                return;
+            }
+            if (erkennung) { erkennung.stop(); return; }
+
+            erkennung = new Erkennung();
+            erkennung.lang = 'de-AT';
+            erkennung.interimResults = true;
+            erkennung.continuous = false;
+            const vorher = feld.value ? feld.value.trimEnd() + ' ' : '';
+
+            erkennung.onstart = () => {
+                knopf.classList.add('aktiv');
+                knopf.setAttribute('aria-label', 'Spracheingabe beenden');
+                setze('p-mikro', 'hört zu …', 'offen');
+            };
+            erkennung.onresult = (e) => {
+                const text = [...e.results].map((r) => r[0].transcript).join('');
+                feld.value = vorher + text;
+                anpassen();
+                if (e.results[e.results.length - 1].isFinal) setze('p-mikro', 'funktioniert', 'ok');
+            };
+            erkennung.onerror = (e) => {
+                const meldungen = {
+                    'not-allowed': 'Mikrofon nicht erlaubt (Einstellungen › Safari › Mikrofon)',
+                    'service-not-allowed': 'Spracherkennung gesperrt (Siri & Diktat aktivieren)',
+                    'no-speech': 'nichts gehört, bitte nochmal',
+                    'network': 'kein Netz für die Spracherkennung',
+                };
+                setze('p-mikro', meldungen[e.error] || 'Fehler: ' + e.error, 'nein');
+            };
+            erkennung.onend = () => {
+                knopf.classList.remove('aktiv');
+                knopf.setAttribute('aria-label', 'Spracheingabe starten');
+                erkennung = null;
+            };
+            erkennung.start();
+        });
+    </script>
+</body>
+</html>
