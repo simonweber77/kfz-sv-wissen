@@ -79,7 +79,7 @@ function teileInFenster(zeilen, maxZeichen, ueberlappung) {
 
 /**
  * Zerlegt die Gesamt-.md in suchbare Abschnitte.
- * Alles vor dem ersten "## Kapitel" (Übersicht, Inhaltsverzeichnis) wird übersprungen.
+ * Gibt es "## Kapitel"-Überschriften, wird alles davor (Übersicht, Inhaltsverzeichnis) übersprungen.
  * @returns {{id:number, kapitel:string, dokument:string, pfad:string[], text:string}[]}
  */
 export function zerlegeUnterlagen(markdown, { maxZeichen = STANDARD_MAX_ZEICHEN, ueberlappung = STANDARD_UEBERLAPPUNG } = {}) {
@@ -87,7 +87,8 @@ export function zerlegeUnterlagen(markdown, { maxZeichen = STANDARD_MAX_ZEICHEN,
     const abschnitte = [];
     const stapel = []; // Überschriften Ebene 2..6, Index = Ebene - 2
     let puffer = [];
-    let begonnen = false;
+    // Kompendium mit "## Kapitel"-Gliederung: Übersicht davor überspringen; andere Dateien ganz nehmen
+    let begonnen = !/^##\s+Kapitel\s+\d+/m.test(markdown);
     let imCodeblock = false;
 
     const sichern = () => {

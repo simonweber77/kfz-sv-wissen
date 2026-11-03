@@ -19,7 +19,6 @@
             --sv-navy: #003781;
             --sv-navy-dark: #00224f;
             --sv-red: #e2001a;
-            --sv-red-dark: #b8000f;
             --sv-bg: oklch(0.975 0.004 255);
             --sv-surface: #ffffff;
             --sv-surface-alt: oklch(0.97 0.006 255);
@@ -28,6 +27,8 @@
             --sv-text-muted: #59667a;
             --sv-success: #157f3c;
             --sv-warning: #a9560a;
+            --sv-frage-bg: #00224f;
+            --sv-frage-text: #ffffff;
             --sv-radius-sm: 8px;
             --sv-radius: 14px;
             --sv-radius-lg: 20px;
@@ -46,6 +47,7 @@
                 --sv-text-muted: oklch(0.7 0.014 255);
                 --sv-success: oklch(0.76 0.15 150);
                 --sv-warning: oklch(0.79 0.14 75);
+                --sv-frage-bg: #003781;
             }
         }
 
@@ -60,50 +62,105 @@
             display: flex;
             flex-direction: column;
         }
+        button { font: inherit; color: inherit; }
 
         /* Kopfzeile wie in der Toolbox */
         #kopf {
             background: #00224f;
             color: #fff;
-            padding: calc(env(safe-area-inset-top) + 10px) 16px 12px;
+            padding: calc(env(safe-area-inset-top) + 10px) 12px 12px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
             border-bottom: 1px solid rgba(255, 255, 255, .08);
         }
-        #kopf .marke {
-            width: 44px;
-            height: 44px;
-            flex-shrink: 0;
-            border-radius: 11px;
-            box-shadow: 0 8px 30px -12px rgba(0, 0, 0, .5);
-        }
+        #kopf .marke { width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; box-shadow: 0 8px 30px -12px rgba(0, 0, 0, .5); }
+        #kopf .titel { flex: 1; min-width: 0; }
         #kopf h1 { font-size: 17px; font-weight: 700; margin: 0; letter-spacing: -.02em; }
-        #kopf p { font-size: 12px; margin: 1px 0 0; color: #9fb2c9; }
+        #kopf p { font-size: 12px; margin: 1px 0 0; color: #9fb2c9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rund {
+            width: 44px; height: 44px; border: none; border-radius: 50%;
+            display: grid; place-items: center; cursor: pointer; flex-shrink: 0;
+        }
+        #kopf .rund { background: rgba(255, 255, 255, .1); color: #fff; }
+        .rund svg { width: 22px; height: 22px; }
 
         #verlauf {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 16px 14px 24px;
             display: flex;
             flex-direction: column;
             gap: 12px;
+            -webkit-overflow-scrolling: touch;
         }
         .karte {
             background: var(--sv-surface);
             border: 1px solid var(--sv-border);
             border-radius: var(--sv-radius);
             padding: 14px 16px;
-            line-height: 1.5;
-            font-size: 15px;
+            line-height: 1.55;
+            font-size: 15.5px;
+            overflow-wrap: anywhere;
         }
-        .karte h2 { font-size: 15px; margin: 0 0 6px; }
-        .karte ul { margin: 6px 0 0; padding-left: 0; list-style: none; }
-        .karte li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-top: 1px solid var(--sv-border); font-size: 14px; }
-        .karte li:first-child { border-top: none; }
-        .ok { color: var(--sv-success); font-weight: 600; }
-        .nein { color: var(--sv-red); font-weight: 600; }
-        .offen { color: var(--sv-text-muted); }
+        .karte h2 { font-size: 16px; margin: 0 0 6px; }
+        .karte p { margin: 0 0 10px; }
+        .karte p:last-child { margin-bottom: 0; }
+        .gedaempft { color: var(--sv-text-muted); font-size: 13.5px; }
+        .frage {
+            align-self: flex-end;
+            max-width: 85%;
+            background: var(--sv-frage-bg);
+            color: var(--sv-frage-text);
+            border-radius: var(--sv-radius) var(--sv-radius) 4px var(--sv-radius);
+            padding: 10px 14px;
+            font-size: 15.5px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+        .knopf {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            min-height: 44px; padding: 10px 16px;
+            border-radius: var(--sv-radius-sm); border: none; cursor: pointer;
+            background: var(--sv-navy-dark); color: #fff; font-weight: 600; font-size: 15px;
+        }
+        @media (prefers-color-scheme: dark) { .knopf { background: #003781; } }
+        .knopf.zweit { background: var(--sv-surface-alt); color: var(--sv-text); border: 1px solid var(--sv-border); }
+
+        /* Antwort */
+        .antwort h3, .antwort h4, .antwort h5 { font-size: 15.5px; margin: 12px 0 4px; }
+        .antwort ul, .antwort ol { margin: 4px 0 10px; padding-left: 20px; }
+        .antwort li { margin: 2px 0; }
+        .antwort blockquote { margin: 8px 0; padding: 6px 12px; border-left: 3px solid var(--sv-navy); background: var(--sv-surface-alt); border-radius: 0 6px 6px 0; }
+        .antwort code { font-size: 13px; background: var(--sv-surface-alt); padding: 1px 4px; border-radius: 4px; }
+        .tabelle { overflow-x: auto; margin: 8px 0 10px; }
+        .tabelle table { border-collapse: collapse; font-size: 13.5px; min-width: 100%; }
+        .tabelle th, .tabelle td { border: 1px solid var(--sv-border); padding: 5px 8px; text-align: left; vertical-align: top; }
+        .tabelle th { background: var(--sv-surface-alt); }
+        .zitat {
+            display: inline-grid; place-items: center;
+            min-width: 22px; height: 20px; padding: 0 5px; margin: 0 1px;
+            border: none; border-radius: 10px; cursor: pointer;
+            background: var(--sv-navy-dark); color: #fff; font-size: 11.5px; font-weight: 700;
+            vertical-align: 1px;
+        }
+        @media (prefers-color-scheme: dark) { .zitat { background: #2b5cad; } }
+        .lade::after { content: '▍'; animation: blinken 1s steps(1) infinite; color: var(--sv-navy); }
+        @keyframes blinken { 50% { opacity: 0; } }
+        .fehler { color: var(--sv-red); font-weight: 600; }
+        .fusszeile { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+
+        /* Fundstellen */
+        details.quellen { margin-top: 12px; border-top: 1px solid var(--sv-border); padding-top: 8px; }
+        details.quellen summary { cursor: pointer; color: var(--sv-text-muted); font-size: 13.5px; font-weight: 600; min-height: 32px; display: flex; align-items: center; }
+        .quelle {
+            display: flex; gap: 10px; width: 100%; text-align: left;
+            padding: 9px 0; border: none; border-top: 1px solid var(--sv-border); background: none; cursor: pointer;
+        }
+        .quelle:first-of-type { border-top: none; }
+        .quelle .nr { flex-shrink: 0; }
+        .quelle .pfad { font-size: 13.5px; line-height: 1.35; }
+        .quelle .pfad small { display: block; color: var(--sv-text-muted); font-size: 12px; margin-top: 2px; }
 
         /* Eingabeleiste unten, mit dem Daumen erreichbar */
         #eingabe {
@@ -112,7 +169,7 @@
             padding: 10px 12px calc(env(safe-area-inset-bottom) + 10px);
             display: flex;
             align-items: flex-end;
-            gap: 10px;
+            gap: 8px;
         }
         #frage {
             flex: 1;
@@ -128,19 +185,9 @@
             color: var(--sv-text);
         }
         #frage:focus { outline: 2px solid var(--sv-navy); outline-offset: 1px; }
-        #mikro {
-            width: 56px;
-            height: 56px;
-            flex-shrink: 0;
-            border: none;
-            border-radius: 50%;
-            background: var(--sv-navy-dark);
-            color: #fff;
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            transition: transform .2s var(--sv-ease), background .2s;
-        }
+        #senden { background: var(--sv-surface-alt); color: var(--sv-navy); border: 1px solid var(--sv-border); width: 48px; height: 48px; }
+        #senden[hidden] { display: none; }
+        #mikro { width: 56px; height: 56px; background: var(--sv-navy-dark); color: #fff; transition: transform .2s var(--sv-ease), background .2s; }
         @media (prefers-color-scheme: dark) { #mikro { background: #003781; } }
         #mikro:active { transform: scale(.94); }
         #mikro.aktiv { background: var(--sv-red); animation: puls 1.4s infinite; }
@@ -150,33 +197,56 @@
             100% { box-shadow: 0 0 0 0 rgba(226, 0, 26, 0); }
         }
         #mikro svg { width: 26px; height: 26px; }
+
+        /* Dialoge als Blatt von unten */
+        dialog {
+            border: none; padding: 0; margin: auto auto 0; width: 100%; max-width: 640px;
+            max-height: 88vh; border-radius: var(--sv-radius-lg) var(--sv-radius-lg) 0 0;
+            background: var(--sv-surface); color: var(--sv-text);
+        }
+        dialog::backdrop { background: rgba(0, 20, 50, .45); }
+        .blatt { display: flex; flex-direction: column; max-height: 88vh; }
+        .blatt header { display: flex; align-items: center; gap: 8px; padding: 14px 12px 10px 18px; border-bottom: 1px solid var(--sv-border); }
+        .blatt header h2 { flex: 1; font-size: 17px; margin: 0; }
+        .blatt header .rund { background: var(--sv-surface-alt); }
+        .blatt .inhalt { overflow-y: auto; padding: 14px 18px calc(env(safe-area-inset-bottom) + 20px); line-height: 1.55; font-size: 15px; }
+        .blatt section { margin-bottom: 22px; }
+        .blatt h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--sv-text-muted); margin: 0 0 8px; }
+        .blatt label { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+        .blatt input[type="password"], .blatt input[type="text"], .blatt select {
+            width: 100%; font: inherit; font-size: 16px; padding: 11px 12px; min-height: 44px;
+            border-radius: var(--sv-radius-sm); border: 1px solid var(--sv-border);
+            background: var(--sv-surface-alt); color: var(--sv-text);
+        }
+        .zeile { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .pfadzeile { font-size: 13px; color: var(--sv-text-muted); margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <header id="kopf">
         <img class="marke" src="icons/icon-192.png" alt="">
-        <div>
+        <div class="titel">
             <h1>KFZ-SV Wissen</h1>
-            <p>Fragen zu deinen Unterlagen</p>
+            <p id="status">Fragen zu deinen Unterlagen</p>
         </div>
+        <button id="einstellungen-oeffnen" class="rund" type="button" aria-label="Einstellungen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+            </svg>
+        </button>
     </header>
 
-    <main id="verlauf" aria-live="polite">
-        <section class="karte">
-            <h2>Gerätetest (Ausbaustufe 1)</h2>
-            <p>Bitte einmal auf das Mikrofon tippen, eine Frage sprechen und prüfen, ob der Text im Feld unten erscheint.</p>
-            <ul id="pruefliste">
-                <li><span>Als App vom Home-Bildschirm gestartet</span><span id="p-app" class="offen">…</span></li>
-                <li><span>Spracherkennung vorhanden</span><span id="p-sprache" class="offen">…</span></li>
-                <li><span>Mikrofon-Test</span><span id="p-mikro" class="offen">noch nicht getestet</span></li>
-                <li><span>Offline-Cache aktiv</span><span id="p-offline" class="offen">…</span></li>
-            </ul>
-        </section>
-    </main>
+    <main id="verlauf" aria-live="polite"></main>
 
     <footer id="eingabe">
-        <textarea id="frage" rows="1" placeholder="Frage stellen …" aria-label="Frage"></textarea>
-        <button id="mikro" type="button" aria-label="Spracheingabe starten">
+        <textarea id="frage" rows="1" placeholder="Frage stellen …" aria-label="Frage" enterkeyhint="send"></textarea>
+        <button id="senden" class="rund" type="button" aria-label="Frage senden" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 19V5M5 12l7-7 7 7"></path>
+            </svg>
+        </button>
+        <button id="mikro" class="rund" type="button" aria-label="Spracheingabe starten">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="9" y="2" width="6" height="12" rx="3"></rect>
                 <path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"></path>
@@ -184,40 +254,268 @@
         </button>
     </footer>
 
+    <input id="datei" type="file" hidden>
+
+    <dialog id="einstellungen" aria-labelledby="einstellungen-titel">
+        <div class="blatt">
+            <header>
+                <h2 id="einstellungen-titel">Einstellungen</h2>
+                <button class="rund schliessen" type="button" aria-label="Schließen">✕</button>
+            </header>
+            <div class="inhalt">
+                <section>
+                    <h3>Unterlagen</h3>
+                    <p id="unterlagen-status" class="gedaempft">Noch keine Unterlagen geladen.</p>
+                    <div class="zeile"><button id="unterlagen-laden" class="knopf" type="button">Unterlagen laden (.md)</button></div>
+                    <p class="gedaempft" style="margin-top:8px">Datei aus Google Drive oder der Dateien-App wählen. Sie wird nur auf diesem Gerät gespeichert und nie hochgeladen.</p>
+                </section>
+                <section>
+                    <h3>KI-Modell</h3>
+                    <select id="modell" aria-label="KI-Modell"></select>
+                    <p id="modell-hinweis" class="gedaempft" style="margin-top:6px"></p>
+                </section>
+                <section>
+                    <h3>Claude-API-Key</h3>
+                    <input id="key-claude" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-…">
+                    <div class="zeile">
+                        <button id="key-speichern" class="knopf" type="button">Speichern</button>
+                        <button id="key-loeschen" class="knopf zweit" type="button">Löschen</button>
+                    </div>
+                    <p id="key-status" class="gedaempft" style="margin-top:8px">Der Key wird nur auf diesem Gerät gespeichert. An die KI gehen pro Frage nur die Frage und bis zu 10 passende Auszüge.</p>
+                </section>
+                <section>
+                    <h3>Info</h3>
+                    <p class="gedaempft">KFZ-SV Wissen · Ausbaustufe 2 (Import, Suche, Claude) · <span id="speicher-info"></span></p>
+                </section>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog id="quelle" aria-labelledby="quelle-titel">
+        <div class="blatt">
+            <header>
+                <h2 id="quelle-titel">Fundstelle</h2>
+                <button class="rund schliessen" type="button" aria-label="Schließen">✕</button>
+            </header>
+            <div class="inhalt">
+                <div id="quelle-pfad" class="pfadzeile"></div>
+                <div id="quelle-text" class="antwort"></div>
+            </div>
+        </div>
+    </dialog>
+
     <script type="module">
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js';
+        import { markdownZuHtml, maskiere } from './darstellung.js';
+        import { MODELLE, STANDARD_MODELL, baueSystemPrompt, baueFrage, findeHausregeln, frageClaude, KiFehler } from './ki.js';
+
         const $ = (id) => document.getElementById(id);
-        const setze = (id, text, klasse) => { $(id).textContent = text; $(id).className = klasse; };
+        const verlauf = $('verlauf');
+        const feld = $('frage');
+        const LS = { modell: 'kfzsv.modell', keyClaude: 'kfzsv.key.claude' };
 
-        // --- Prüfliste ---------------------------------------------------
-        const alsApp = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-        setze('p-app', alsApp ? 'ja' : 'nein (Safari-Tab)', alsApp ? 'ok' : 'nein');
+        const lies = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+        const merke = (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* privates Fenster */ } };
 
-        const Erkennung = window.SpeechRecognition || window.webkitSpeechRecognition;
-        setze('p-sprache', Erkennung ? 'ja' : 'nein → Tastatur-Diktat', Erkennung ? 'ok' : 'nein');
+        let wissen = null;          // { abschnitte, index, meta }
+        let laufend = null;         // AbortController der aktuellen Antwort
+        const trefferJeKarte = new WeakMap();
 
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => navigator.serviceWorker.ready)
-                .then(() => setze('p-offline', 'ja', 'ok'))
-                .catch((e) => setze('p-offline', 'Fehler: ' + e.message, 'nein'));
-        } else {
-            setze('p-offline', 'nicht unterstützt', 'nein');
+        // --- Hilfen ----------------------------------------------------------
+        function element(tag, klasse, html) {
+            const e = document.createElement(tag);
+            if (klasse) e.className = klasse;
+            if (html !== undefined) e.innerHTML = html;
+            return e;
+        }
+        function nachUnten() { verlauf.scrollTop = verlauf.scrollHeight; }
+        const zahl = (n) => n.toLocaleString('de-AT');
+        const modellInfo = () => MODELLE.find((m) => m.id === (lies(LS.modell) || STANDARD_MODELL)) || MODELLE[0];
+
+        function zeigeStatus() {
+            const m = modellInfo();
+            $('status').textContent = wissen
+                ? `${zahl(wissen.meta.anzahl)} Abschnitte · ${m.name}`
+                : 'Noch keine Unterlagen geladen';
+            $('unterlagen-status').textContent = wissen
+                ? `${wissen.meta.datei} · ${zahl(wissen.meta.anzahl)} Abschnitte · geladen am ${new Date(wissen.meta.datum).toLocaleString('de-AT')}`
+                : 'Noch keine Unterlagen geladen.';
         }
 
-        // --- Eingabefeld wächst mit ---------------------------------------
-        const feld = $('frage');
-        const anpassen = () => { feld.style.height = 'auto'; feld.style.height = Math.min(feld.scrollHeight, 140) + 'px'; };
-        feld.addEventListener('input', anpassen);
+        function willkommen() {
+            verlauf.innerHTML = '';
+            const karte = element('section', 'karte');
+            if (!wissen) {
+                karte.innerHTML = `<h2>Willkommen bei KFZ-SV Wissen</h2>
+                    <p>Lade zuerst deine Unterlagen als <strong>.md-Datei</strong>. Sie bleiben nur auf diesem iPhone gespeichert.</p>
+                    <div class="zeile"><button class="knopf" type="button" data-aktion="laden">Unterlagen laden</button></div>`;
+            } else {
+                karte.innerHTML = `<h2>Frag einfach</h2>
+                    <p>Tippe auf das Mikrofon und sprich deine Frage, oder schreib sie ins Feld. Die Antwort kommt mit Quellenangaben – antippen öffnet die Fundstelle.</p>
+                    ${lies(LS.keyClaude) ? '' : '<p class="gedaempft">Ohne API-Key zeigt die App nur die Fundstellen. Den Key trägst du unter Einstellungen ein.</p>'}`;
+            }
+            verlauf.append(karte);
+        }
 
-        // --- Spracheingabe -------------------------------------------------
+        // --- Unterlagen importieren -----------------------------------------
+        async function importiere(datei) {
+            const karte = element('section', 'karte', `<p>Lese <strong>${maskiere(datei.name)}</strong> …</p>`);
+            verlauf.append(karte); nachUnten();
+            try {
+                const start = performance.now();
+                const text = await datei.text();
+                const abschnitte = zerlegeUnterlagen(text);
+                if (!abschnitte.length) throw new Error('In der Datei wurden keine Abschnitte mit Überschriften (##) gefunden.');
+                const index = baueIndex(abschnitte);
+                const meta = { datei: datei.name, datum: Date.now(), anzahl: abschnitte.length, hausregeln: findeHausregeln(text) };
+                await schreibe('wissen', { abschnitte, index, meta });
+                await dauerhaftSpeichern();
+                wissen = { abschnitte, index, meta };
+                zeigeStatus();
+                karte.innerHTML = `<p>✓ <strong>${maskiere(datei.name)}</strong> geladen: ${zahl(abschnitte.length)} Abschnitte in ${((performance.now() - start) / 1000).toFixed(1)} s.</p>`;
+                setTimeout(willkommen, 1800);
+            } catch (e) {
+                karte.innerHTML = `<p class="fehler">Import fehlgeschlagen: ${maskiere(e.message)}</p>`;
+            }
+        }
+        $('datei').addEventListener('change', (e) => {
+            const datei = e.target.files[0];
+            e.target.value = '';
+            if (datei) { $('einstellungen').close(); importiere(datei); }
+        });
+        const dateiWaehlen = () => $('datei').click();
+        $('unterlagen-laden').addEventListener('click', dateiWaehlen);
+
+        // --- Fundstellen ------------------------------------------------------
+        function zeigeQuelle(treffer, nr) {
+            const t = treffer[nr - 1];
+            if (!t) return;
+            $('quelle-titel').textContent = `Fundstelle ${nr}`;
+            $('quelle-pfad').textContent = t.abschnitt.pfad.join(' › ');
+            $('quelle-text').innerHTML = markdownZuHtml(t.abschnitt.text);
+            $('quelle').showModal();
+        }
+
+        function quellenListe(treffer, offen) {
+            const d = element('details', 'quellen');
+            d.open = offen;
+            d.innerHTML = `<summary>${treffer.length} Fundstellen</summary>` + treffer.map(({ abschnitt }, i) => {
+                const titel = abschnitt.pfad.at(-1);
+                const herkunft = abschnitt.pfad.slice(1, -1).join(' › ') || abschnitt.pfad[0];
+                return `<button type="button" class="quelle" data-nr="${i + 1}"><span class="zitat nr">${i + 1}</span>
+                    <span class="pfad">${maskiere(titel)}<small>${maskiere(herkunft)}</small></span></button>`;
+            }).join('');
+            return d;
+        }
+
+        verlauf.addEventListener('click', (e) => {
+            if (e.target.closest('[data-aktion="laden"]')) return dateiWaehlen();
+            const ziel = e.target.closest('.zitat, .quelle');
+            if (!ziel) return;
+            const karte = ziel.closest('.karte');
+            const treffer = trefferJeKarte.get(karte);
+            if (treffer) zeigeQuelle(treffer, Number(ziel.dataset.nr || ziel.closest('[data-nr]').dataset.nr));
+        });
+
+        // --- Frage stellen ----------------------------------------------------
+        async function frageStellen(text) {
+            text = text.trim();
+            if (!text) return;
+            if (laufend) laufend.abort();
+            if (verlauf.querySelector('.karte h2')) verlauf.innerHTML = ''; // Willkommenskarte entfernen
+
+            verlauf.append(element('div', 'frage', maskiere(text)));
+            feld.value = ''; anpassen();
+
+            const karte = element('section', 'karte antwort');
+            verlauf.append(karte);
+
+            if (!wissen) {
+                karte.innerHTML = '<p>Bitte zuerst die Unterlagen laden.</p><div class="zeile"><button class="knopf" type="button" data-aktion="laden">Unterlagen laden</button></div>';
+                return nachUnten();
+            }
+
+            const treffer = suche(wissen.index, wissen.abschnitte, text);
+            trefferJeKarte.set(karte, treffer);
+            if (!treffer.length) {
+                karte.innerHTML = '<p>Dazu habe ich in den Unterlagen nichts gefunden. Versuch es mit anderen Begriffen.</p>';
+                return nachUnten();
+            }
+
+            const key = lies(LS.keyClaude);
+            if (!key || !navigator.onLine) {
+                karte.innerHTML = `<p class="gedaempft">${!key ? 'Kein API-Key eingetragen' : 'Offline'} – hier sind die passendsten Fundstellen:</p>`;
+                karte.append(quellenListe(treffer, true));
+                return nachUnten();
+            }
+
+            const textFeld = element('div', 'lade');
+            karte.append(textFeld, quellenListe(treffer, false));
+            nachUnten();
+
+            let antwort = '';
+            let geplant = false;
+            const zeichne = () => {
+                geplant = false;
+                textFeld.innerHTML = markdownZuHtml(antwort, { mitZitaten: true });
+                nachUnten();
+            };
+            const start = performance.now();
+            const steuerung = new AbortController();
+            laufend = steuerung;
+            const m = modellInfo();
+            try {
+                const ergebnis = await frageClaude({
+                    key,
+                    modell: m.id,
+                    system: baueSystemPrompt(wissen.meta.hausregeln),
+                    nachrichten: [{ role: 'user', content: baueFrage(text, treffer) }],
+                    signal: steuerung.signal,
+                    beiText: (stueck) => {
+                        antwort += stueck;
+                        if (!geplant) { geplant = true; requestAnimationFrame(zeichne); }
+                    },
+                });
+                zeichne();
+                textFeld.classList.remove('lade');
+                const fuss = element('div', 'fusszeile gedaempft',
+                    `<span>${maskiere(MODELLE.find((x) => x.id === ergebnis.modell)?.name || ergebnis.modell)} · ${((performance.now() - start) / 1000).toFixed(1)} s</span>`);
+                if (ergebnis.stopGrund === 'max_tokens') fuss.append(element('span', 'fehler', 'Antwort wurde abgeschnitten.'));
+                textFeld.after(fuss);
+            } catch (e) {
+                textFeld.classList.remove('lade');
+                if (e.name === 'AbortError') {
+                    textFeld.append(element('p', 'gedaempft', 'Abgebrochen.'));
+                } else {
+                    textFeld.append(element('p', 'fehler', maskiere(e instanceof KiFehler ? e.message : 'Unerwarteter Fehler: ' + e.message)));
+                    karte.querySelector('details.quellen').open = true;
+                }
+            } finally {
+                if (laufend === steuerung) laufend = null;
+                nachUnten();
+            }
+        }
+
+        // --- Eingabe ----------------------------------------------------------
+        const anpassen = () => {
+            feld.style.height = 'auto';
+            feld.style.height = Math.min(feld.scrollHeight, 140) + 'px';
+            $('senden').hidden = !feld.value.trim();
+        };
+        feld.addEventListener('input', anpassen);
+        feld.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); frageStellen(feld.value); }
+        });
+        $('senden').addEventListener('click', () => frageStellen(feld.value));
+
+        // --- Spracheingabe ----------------------------------------------------
+        const Erkennung = window.SpeechRecognition || window.webkitSpeechRecognition;
         const knopf = $('mikro');
         let erkennung = null;
 
         knopf.addEventListener('click', () => {
-            if (!Erkennung) {
-                feld.focus(); // iOS-Tastatur mit Diktiertaste öffnen
-                return;
-            }
+            if (!Erkennung) { feld.focus(); return; } // iOS-Tastatur mit Diktiertaste
             if (erkennung) { erkennung.stop(); return; }
 
             erkennung = new Erkennung();
@@ -225,34 +523,71 @@
             erkennung.interimResults = true;
             erkennung.continuous = false;
             const vorher = feld.value ? feld.value.trimEnd() + ' ' : '';
+            let fertig = false;
 
-            erkennung.onstart = () => {
-                knopf.classList.add('aktiv');
-                knopf.setAttribute('aria-label', 'Spracheingabe beenden');
-                setze('p-mikro', 'hört zu …', 'offen');
-            };
+            erkennung.onstart = () => { knopf.classList.add('aktiv'); knopf.setAttribute('aria-label', 'Spracheingabe beenden'); };
             erkennung.onresult = (e) => {
-                const text = [...e.results].map((r) => r[0].transcript).join('');
-                feld.value = vorher + text;
+                feld.value = vorher + [...e.results].map((r) => r[0].transcript).join('');
                 anpassen();
-                if (e.results[e.results.length - 1].isFinal) setze('p-mikro', 'funktioniert', 'ok');
+                fertig = e.results[e.results.length - 1].isFinal;
             };
             erkennung.onerror = (e) => {
                 const meldungen = {
-                    'not-allowed': 'Mikrofon nicht erlaubt (Einstellungen › Safari › Mikrofon)',
-                    'service-not-allowed': 'Spracherkennung gesperrt (Siri & Diktat aktivieren)',
-                    'no-speech': 'nichts gehört, bitte nochmal',
-                    'network': 'kein Netz für die Spracherkennung',
+                    'not-allowed': 'Mikrofon nicht erlaubt (Einstellungen › Apps › Safari › Mikrofon).',
+                    'service-not-allowed': 'Spracherkennung gesperrt (Einstellungen › Allgemein › Tastatur › Diktierfunktion).',
+                    'network': 'Kein Netz für die Spracherkennung.',
                 };
-                setze('p-mikro', meldungen[e.error] || 'Fehler: ' + e.error, 'nein');
+                if (meldungen[e.error]) verlauf.append(element('p', 'fehler', meldungen[e.error]));
             };
             erkennung.onend = () => {
                 knopf.classList.remove('aktiv');
                 knopf.setAttribute('aria-label', 'Spracheingabe starten');
                 erkennung = null;
+                if (fertig && feld.value.trim()) frageStellen(feld.value); // gesprochene Frage gleich absenden
             };
             erkennung.start();
         });
+
+        // --- Einstellungen ----------------------------------------------------
+        const modellAuswahl = $('modell');
+        modellAuswahl.innerHTML = MODELLE.map((m) => `<option value="${m.id}">${maskiere(m.name)}</option>`).join('');
+        const zeigeModellHinweis = () => { $('modell-hinweis').textContent = modellInfo().hinweis; };
+        modellAuswahl.addEventListener('change', () => { merke(LS.modell, modellAuswahl.value); zeigeModellHinweis(); zeigeStatus(); });
+
+        $('einstellungen-oeffnen').addEventListener('click', async () => {
+            modellAuswahl.value = modellInfo().id;
+            zeigeModellHinweis();
+            $('key-claude').value = '';
+            $('key-claude').placeholder = lies(LS.keyClaude) ? '•••••••• (gespeichert)' : 'sk-ant-…';
+            try {
+                const s = await navigator.storage?.estimate?.();
+                const dauerhaft = await navigator.storage?.persisted?.();
+                $('speicher-info').textContent = s ? `Speicher ${(s.usage / 1e6).toFixed(1)} MB${dauerhaft ? ', dauerhaft' : ''}` : '';
+            } catch { /* nicht unterstützt */ }
+            $('einstellungen').showModal();
+        });
+        $('key-speichern').addEventListener('click', () => {
+            const key = $('key-claude').value.trim();
+            if (!key) return;
+            merke(LS.keyClaude, key);
+            $('key-claude').value = '';
+            $('key-claude').placeholder = '•••••••• (gespeichert)';
+            $('key-status').textContent = '✓ Key gespeichert (nur auf diesem Gerät).';
+        });
+        $('key-loeschen').addEventListener('click', () => {
+            merke(LS.keyClaude, '');
+            $('key-claude').placeholder = 'sk-ant-…';
+            $('key-status').textContent = 'Key gelöscht.';
+        });
+        document.querySelectorAll('dialog .schliessen').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
+        document.querySelectorAll('dialog').forEach((d) => d.addEventListener('click', (e) => { if (e.target === d) d.close(); }));
+        $('einstellungen').addEventListener('close', () => { if (!verlauf.querySelector('.frage')) willkommen(); });
+
+        // --- Start ------------------------------------------------------------
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+        try { wissen = (await lese('wissen')) || null; } catch { wissen = null; }
+        zeigeStatus();
+        willkommen();
     </script>
 </body>
 </html>
