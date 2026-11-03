@@ -356,7 +356,7 @@
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Version 4.2 (Mikrofon stoppt beim Senden sofort) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Version 4.3 (Fragen per Kurzbefehl und Aktionstaste) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -376,12 +376,12 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=7';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=7';
-        import { markdownZuHtml, maskiere } from './darstellung.js?v=7';
-        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=7';
-        import { Spracheingabe } from './sprache.js?v=7';
-        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=7';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=8';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=8';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=8';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=8';
+        import { Spracheingabe } from './sprache.js?v=8';
+        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=8';
 
         // Häufige Fragen als Knöpfe auf dem Startbildschirm: [Beschriftung, Frage]
         const SCHNELLFRAGEN = [
@@ -735,6 +735,16 @@
         try { wissen = (await lese('wissen')) || null; } catch { wissen = null; }
         zeigeStatus();
         willkommen();
+
+        // Frage über die Adresse, z. B. aus einem Kurzbefehl (Aktionstaste, Siri): …/?frage=… oder …/#frage=…
+        const frageAusAdresse = () => {
+            const frage = new URLSearchParams(location.search).get('frage') || new URLSearchParams(location.hash.slice(1)).get('frage');
+            if (!frage) return;
+            history.replaceState(null, '', location.pathname); // beim Neuladen nicht noch einmal fragen
+            frageStellen(frage);
+        };
+        frageAusAdresse();
+        window.addEventListener('hashchange', frageAusAdresse); // App war schon offen
     </script>
 </body>
 </html>
