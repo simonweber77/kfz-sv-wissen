@@ -1,16 +1,16 @@
 /* KFZ-SV Wissen — Service Worker
    Strategie wie in der SV-Toolbox: App-Shell im Cache (stale-while-revalidate), KI-Aufrufe nie cachen.
    Die Unterlagen liegen in IndexedDB, nicht hier. */
-const CACHE = 'kfz-sv-wissen-v10';
+const CACHE = 'kfz-sv-wissen-v11';
 const SHELL = [
     './',
     './index.html',
-    './suche.js?v=10',
-    './speicher.js?v=10',
-    './darstellung.js?v=10',
-    './ki.js?v=10',
-    './sprache.js?v=10',
-    './vorlesen.js?v=10',
+    './suche.js?v=11',
+    './speicher.js?v=11',
+    './darstellung.js?v=11',
+    './ki.js?v=11',
+    './sprache.js?v=11',
+    './vorlesen.js?v=11',
     './manifest.webmanifest',
     './icons/apple-touch-icon.png',
     './icons/icon-192.png',

@@ -367,7 +367,7 @@
                 </section>
                 <section>
                     <h3>Info</h3>
-                    <p class="gedaempft">KFZ-SV Wissen · Version 4.4 (sofort zuhören beim Öffnen, für die Aktionstaste) · <span id="speicher-info"></span></p>
+                    <p class="gedaempft">KFZ-SV Wissen · Version 4.5 (Suche versteht „abgeben“ ↔ Abgabefrist) · <span id="speicher-info"></span></p>
                 </section>
             </div>
         </div>
@@ -387,12 +387,12 @@
     </dialog>
 
     <script type="module">
-        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=10';
-        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=10';
-        import { markdownZuHtml, maskiere } from './darstellung.js?v=10';
-        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=10';
-        import { Spracheingabe } from './sprache.js?v=10';
-        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=10';
+        import { zerlegeUnterlagen, baueIndex, suche } from './suche.js?v=11';
+        import { lese, schreibe, dauerhaftSpeichern } from './speicher.js?v=11';
+        import { markdownZuHtml, maskiere } from './darstellung.js?v=11';
+        import { MODELLE, STANDARD_MODELL, ANBIETER, baueSystemPrompt, baueNachrichten, suchtextFuer, findeHausregeln, frageKi, KiFehler } from './ki.js?v=11';
+        import { Spracheingabe } from './sprache.js?v=11';
+        import { klartext, kannVorlesen, lieseVor, stoppeVorlesen } from './vorlesen.js?v=11';
 
         // Häufige Fragen als Knöpfe auf dem Startbildschirm: [Beschriftung, Frage]
         const SCHNELLFRAGEN = [
