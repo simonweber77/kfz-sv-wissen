@@ -180,6 +180,7 @@ const SYNONYM_GRUPPEN = [
     ['abdeckarbeit', 'abdecken', 'abkleben', 'abdeckmaterial', 'abdeckung'],
     ['zweifarbig', 'andersfarbig', 'teilweise', 'teillackiert'],
     ['scheibe', 'verglasung', 'windschutzscheibe'],
+    ['abgabefrist', 'abgabefristen', 'abgabe', 'abgeben', 'abgegeben', 'frist', 'fristen'],
 ];
 
 const SYNONYME = new Map();
